@@ -1,4 +1,3 @@
-#pragma once
 #ifndef __BUZZER_H_
 #define __BUZZER_H_
 

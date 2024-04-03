@@ -136,14 +136,11 @@ TaskHandle_t buzzerTaskHandle = NULL;
 void buzzer_init()
 {
     note_index = 0;
-
     pinMode(35, INPUT);
     pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(BUZZER_PIN, LOW);
-
     xTaskCreate(buzzer_task, "Buzzer Task", 1024, NULL, 2, &buzzerTaskHandle);
-
-    Serial.println("buzzer: \t [init]");
+    Serial.println("buzzer:  [init]");
 }
 
 void buzzer_set_play_a_tone()

@@ -1,9 +1,7 @@
 #include "ap.h"
-
 #include "html/html.h"
 #include "gps.h"
 #include "bus.h"
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>

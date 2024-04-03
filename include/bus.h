@@ -1,4 +1,3 @@
-#pragma once
 #ifndef __BUS_H_
 #define __BUS_H_
 
@@ -70,8 +69,8 @@ const Stations STATIONS[] = {
     {10.773046, 106.655203},
     {10.773762, 106.657042}};
 
-// #define STATIONS_N sizeof(STATIONS) / sizeof(STATIONS[0])
-#define STATIONS_N 3
+#define STATIONS_N sizeof(STATIONS) / sizeof(STATIONS[0])
+// #define STATIONS_N 3
 
 enum BusDirection
 {
@@ -112,6 +111,13 @@ extern BUS_MODE busMode;
 
 /* Functions -----------------------------------------------------------------*/
 void bus_init(void);
+void updateBusDirection();
+void updateBusStopsList();
+
 void busAckToStation(SYSTEM_STATE state);
+void bus_ack_debuger(void);
+void bus_fsm_reset_state(SYSTEM_STATE state);
+void bus_fsm(void);
+void busCancel(void);
 
 #endif

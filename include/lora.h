@@ -1,4 +1,3 @@
-#pragma once
 #ifndef __LORA_H_
 #define __LORA_H_
 

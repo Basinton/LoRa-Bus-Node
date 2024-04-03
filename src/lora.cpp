@@ -3,7 +3,6 @@
 #include "bus.h"
 #include "gps.h"
 #include "button.h"
-
 #include "Arduino.h"
 #include "LoRa_E32.h"
 
@@ -11,7 +10,7 @@
 
 /* Variables -----------------------------------------------------------------*/
 uint8_t lora_receive[1000] = {0};
-uint32_t lora_receive_cnt  = 0;
+uint32_t lora_receive_count = 0;
 
 LoRa_E32 e32ttl100(&Serial2, PIN_AUX, PIN_M0, PIN_M1, UART_BPS_RATE_9600);
 
@@ -23,7 +22,6 @@ void lora_task(void *pvParameters)
     while (1)
     {
         lora_process();
-
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
@@ -32,9 +30,7 @@ void lora_init(void)
 {
     e32ttl100.begin();
     setConfig(BUS_ADDRESS, BUS_CHANNEL, AIR_DATA_RATE_000_03, POWER_20);
-
     xTaskCreate(lora_task, "lora task", 8192, NULL, configMAX_PRIORITIES, &loraTaskHandle);
-
     Serial.println("lora: \t [init]");
 }
 
@@ -46,17 +42,54 @@ uint8_t checkSum(uint8_t *message, int size)
     return checksum;
 }
 
+void lora_process(void)
+{
+    static uint32_t _checkNoData = 0;
+
+    if (e32ttl100.available() > 1)
+    {
+        _checkNoData = 0;
+        ResponseContainer response = e32ttl100.receiveMessage();
+
+        for (uint32_t i = 0; i < response.data.length(); i++)
+        {
+            lora_receive[lora_receive_count] = response.data[i];
+            lora_receive_count = (lora_receive_count + 1) % 1000;
+        }
+    }
+    else
+    {
+        _checkNoData = _checkNoData + 1;
+    }
+
+    if (_checkNoData > 1)
+    {
+        lora_receive_count = 0;
+        _checkNoData = 0;
+    }
+
+    if (lora_receive_count > LORA_PACKAGE_SIZE_RECIEVE)
+    {
+        Serial.printf("lora:\t[%d] ", lora_receive_count);
+        for (size_t i = 0; i < lora_receive_count; i++)
+        {
+            Serial.printf("%02X ", lora_receive[i]);
+        }
+        Serial.printf("\n");
+        checkDataReceive();
+    }
+}
+
 void checkDataReceive(void)
 {
     static uint8_t status = 0;
     static uint8_t checksum;
     static uint32_t startDataReach = 0;
-
-    static uint32_t sizeOfData = lora_receive_cnt - LORA_PACKAGE_SIZE_RECIEVE;
-
+    static uint32_t sizeOfData = lora_receive_count - LORA_PACKAGE_SIZE_RECIEVE;
     static uint8_t _stationID = 0;
+    Serial.println(sizeOfData);
 
-    for (uint32_t i = 0; i < lora_receive_cnt; i++)
+    for (uint32_t i = 0; i < lora_receive_count; i++)
     {
         if (i >= sizeOfData)
         {
@@ -70,87 +103,87 @@ void checkDataReceive(void)
             {
                 switch (lora_receive[i + STATE_INDEX])
                 {
-                    case REQUEST_TO_BUS:
-                        if (busState == WAITING)
+                case REQUEST_TO_BUS:
+                    if (busState == WAITING)
+                    {
+                        // 0. Get ID of Station (temp)
+                        _stationID = lora_receive[i + STATION_ID_INDEX];
+
+                        // 1. Check condition to accept
+                        static uint8_t _conditionBusAccept = 0;
+
+                        // _conditionBusAccept = (lora_receive[i + BUS_NUMBER_INDEX] == busNumber) && (lora_receive[i + BUS_DIRECTION_INDEX] == busDirection);
+                        // _conditionBusAccept = _conditionBusAccept && (_stationID != 0 && _stationID != STATIONS_N - 1) || button_keycode() == 20;
+                        // _conditionBusAccept = (_conditionBusAccept && (_stationID == nowBusStop + 1)) || button_keycode() == 20;
+                        iWantToAcceptBus = 1;
+                        _conditionBusAccept = iWantToAcceptBus;
+                        
+
+                        // 2. If ok, accept
+                        if (_conditionBusAccept)
                         {
-                            // 0. Get ID of Station (temp)
-                            _stationID = lora_receive[i + STATION_ID_INDEX];
+                            station_request.id = lora_receive[i + ID_INDEX];
+                            station_request.addressHI = lora_receive[i + ADDRESS_HI_INDEX];
+                            station_request.addressLO = lora_receive[i + ADDRESS_LO_INDEX];
+                            station_request.stationID = lora_receive[i + STATION_ID_INDEX];
 
-                            // 1. Check condition to accept
-                            static uint8_t _conditionBusAccept = 0;
-
-                            // _conditionBusAccept = (lora_receive[i + BUS_NUMBER_INDEX] == busNumber) && (lora_receive[i + BUS_DIRECTION_INDEX] == busDirection);
-                            // _conditionBusAccept = _conditionBusAccept && (_stationID != 0 && _stationID != STATIONS_N - 1) || button_keycode() == 20;
-                            // _conditionBusAccept = (_conditionBusAccept && (_stationID == nowBusStop + 1)) || button_keycode() == 20;
-
-                            _conditionBusAccept = iWantToAcceptBus;
-                            iWantToAcceptBus    = 0;
-
-                            // 2. If ok, accept
-                            if (_conditionBusAccept)
-                            {
-                                station_request.id        = lora_receive[i + ID_INDEX];
-                                station_request.addressHI = lora_receive[i + ADDRESS_HI_INDEX];
-                                station_request.addressLO = lora_receive[i + ADDRESS_LO_INDEX];
-                                station_request.stationID = lora_receive[i + STATION_ID_INDEX];
-
-                                isThereRequest = 1;
-                            }
-                            else
-                            {
-                                // Debugging messages
-                                if (lora_receive[i + BUS_NUMBER_INDEX] != busNumber)
-                                    Serial.println("lora:\t[bus] wrong bus number");
-                                if (lora_receive[i + BUS_DIRECTION_INDEX] != busDirection)
-                                    Serial.println("lora:\t[bus] wrong direction");
-                                if (_stationID != nowBusStop + 1)
-                                    Serial.println("lora:\t[bus] is not next station");
-                                if (_stationID == 0)
-                                    Serial.println("lora:\t[bus] first station");
-                                if (_stationID == STATIONS_N - 1)
-                                    Serial.println("lora:\t[bus] last station");
-                            }
+                            isThereRequest = 1;
                         }
                         else
                         {
-                            isStationReAckBusAccept = 1;
+                            // Debugging messages
+                            if (lora_receive[i + BUS_NUMBER_INDEX] != busNumber)
+                                Serial.println("lora:\t[bus] wrong bus number");
+                            if (lora_receive[i + BUS_DIRECTION_INDEX] != busDirection)
+                                Serial.println("lora:\t[bus] wrong direction");
+                            if (_stationID != nowBusStop + 1)
+                                Serial.println("lora:\t[bus] is not next station");
+                            if (_stationID == 0)
+                                Serial.println("lora:\t[bus] first station");
+                            if (_stationID == STATIONS_N - 1)
+                                Serial.println("lora:\t[bus] last station");
                         }
-                        break;
+                    }
+                    else
+                    {
+                        isStationReAckBusAccept = 1;
+                    }
+                    break;
 
-                    case BUS_PASS:
-                        if (busState == BUS_PASS)
-                        {
-                            isFinishedAck = 1;
-                        }
+                case BUS_PASS:
+                    if (busState == BUS_PASS)
+                    {
+                        isFinishedAck = 1;
+                    }
 
-                        break;
+                    break;
 
-                    case DRIVER_CANCEL:
-                        if (busState == DRIVER_CANCEL)
-                        {
-                            isCancelAck = 1;
-                        }
+                case DRIVER_CANCEL:
+                    if (busState == DRIVER_CANCEL)
+                    {
+                        isCancelAck = 1;
+                    }
 
-                        break;
+                    break;
 
-                    case PASSENGER_CANCEL:
-                        if (busState != INIT && busState != WAITING && busState != DRIVER_CANCEL && busState != PASSENGER_CANCEL)
-                        {
-                            isPassengerCancel = 1;
-                        }
-                        else
-                        {
-                            isStationReAckPassengerCancel = 1;
-                        }
+                case PASSENGER_CANCEL:
+                    if (busState != INIT && busState != WAITING && busState != DRIVER_CANCEL && busState != PASSENGER_CANCEL)
+                    {
+                        isPassengerCancel = 1;
+                    }
+                    else
+                    {
+                        isStationReAckPassengerCancel = 1;
+                    }
 
-                        break;
+                    break;
 
-                    default:
-                        break;
+                default:
+                    break;
                 }
 
                 startDataReach = i + LORA_PACKAGE_SIZE_RECIEVE + 1;
-                i              = i + LORA_PACKAGE_SIZE_RECIEVE;
+                i = i + LORA_PACKAGE_SIZE_RECIEVE;
             }
             else
             {
@@ -161,55 +194,18 @@ void checkDataReceive(void)
         }
     }
 
-    if (lora_receive_cnt < startDataReach)
+    if (lora_receive_count < startDataReach)
         return;
 
-    for (uint32_t i = 0; i < lora_receive_cnt - startDataReach; i++)
+    for (uint32_t i = 0; i < lora_receive_count - startDataReach; i++)
     {
-        if (i >= (lora_receive_cnt - startDataReach))
+        if (i >= (lora_receive_count - startDataReach))
             break;
         lora_receive[i] = lora_receive[startDataReach + i];
     }
-    lora_receive_cnt = lora_receive_cnt - startDataReach;
+    lora_receive_count = lora_receive_count - startDataReach;
 
-    memset(&lora_receive[lora_receive_cnt], 0x00, 1000 - lora_receive_cnt);
-}
-
-void lora_process(void)
-{
-    static uint32_t _checkNoData = 0;
-
-    if (e32ttl100.available() > 1)
-    {
-        _checkNoData         = 0;
-        ResponseContainer rs = e32ttl100.receiveMessage();
-
-        for (uint32_t i = 0; i < rs.data.length(); i++)
-        {
-            lora_receive[lora_receive_cnt] = rs.data[i];
-            lora_receive_cnt               = (lora_receive_cnt + 1) % 1000;
-        }
-    }
-    else
-        _checkNoData = _checkNoData + 1;
-
-    if (_checkNoData > 1)
-    {
-        lora_receive_cnt = 0;
-        _checkNoData     = 0;
-    }
-
-    if (lora_receive_cnt > LORA_PACKAGE_SIZE_RECIEVE)
-    {
-        Serial.printf("lora: [%d] ", lora_receive_cnt);
-        for (size_t i = 0; i < lora_receive_cnt; i++)
-        {
-            printf("%02X ", lora_receive[i]);
-        }
-        printf("\n");
-
-        checkDataReceive();
-    }
+    memset(&lora_receive[lora_receive_count], 0x00, 1000 - lora_receive_count);
 }
 
 void accessModeConfig(void)
@@ -242,15 +238,15 @@ void setConfig(uint16_t address, uint16_t channel, uint8_t airRate, uint8_t powe
     configuration.ADDH = (address >> 8) & 0xff;
     configuration.CHAN = channel;
 
-    configuration.OPTION.fec                = FEC_1_ON;
-    configuration.OPTION.fixedTransmission  = FT_FIXED_TRANSMISSION;
-    configuration.OPTION.ioDriveMode        = IO_D_MODE_PUSH_PULLS_PULL_UPS;
-    configuration.OPTION.transmissionPower  = power;
+    configuration.OPTION.fec = FEC_1_ON;
+    configuration.OPTION.fixedTransmission = FT_FIXED_TRANSMISSION;
+    configuration.OPTION.ioDriveMode = IO_D_MODE_PUSH_PULLS_PULL_UPS;
+    configuration.OPTION.transmissionPower = power;
     configuration.OPTION.wirelessWakeupTime = WAKE_UP_250;
 
-    configuration.SPED.airDataRate  = airRate;
+    configuration.SPED.airDataRate = airRate;
     configuration.SPED.uartBaudRate = UART_BPS_9600;
-    configuration.SPED.uartParity   = MODE_00_8N1;
+    configuration.SPED.uartParity = MODE_00_8N1;
 
     // Set configuration changed and set to not hold the configuration
     ResponseStatus rs = e32ttl100.setConfiguration(configuration, WRITE_CFG_PWR_DWN_SAVE);

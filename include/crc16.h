@@ -1,4 +1,3 @@
-#pragma once
 #ifndef __CRC16_H_
 #define __CRC16_H_
 

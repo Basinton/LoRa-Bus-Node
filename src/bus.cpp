@@ -6,7 +6,6 @@
 #include "crc16.h"
 #include "button.h"
 #include "buzzer.h"
-
 #include "Arduino.h"
 
 /* Define --------------------------------------------------------------------*/
@@ -26,7 +25,7 @@ int nowBusStop   = -1;
 int preBusStop   = -1;
 
 // Station request
-SYSTEM_STATE busState              = WAITING;
+SYSTEM_STATE busState           = WAITING;
 uint8_t busTimout               = 0;
 STATION_REQUEST station_request = {0};
 
@@ -40,14 +39,6 @@ uint8_t isStationReAckBusAccept       = 0;
 uint8_t isStationReAckPassengerCancel = 0;
 
 /* Functions -----------------------------------------------------------------*/
-void updateBusDirection();
-void updateBusStopsList();
-
-void busAckToStation(SYSTEM_STATE state);
-void bus_ack_debuger(void);
-void bus_fsm_reset_state(SYSTEM_STATE state);
-void bus_fsm(void);
-void busCancel(void);
 
 void updateBusDirection()
 {
@@ -57,7 +48,6 @@ void updateBusDirection()
     if (busDirection == NOT_KNOWN)
     {
         // Serial.println("bus: \t [direction] now known");
-
         if (gps.location.lat() == 0 || gps.location.lng() == 0)
         {
             return;
@@ -161,12 +151,12 @@ void busTaskUpdate(void *pvParameters)
 
 void busAckToStation(SYSTEM_STATE state)
 {
-    busLoraMessage[0] = 0xff;
+    busLoraMessage[0] = 0xFF;
 
     busLoraMessage[1] = station_request.id;
 
-    busLoraMessage[2] = (BUS_ADDRESS >> 8) & 0xff;
-    busLoraMessage[3] = BUS_ADDRESS & 0xff;
+    busLoraMessage[2] = (BUS_ADDRESS >> 8) & 0xFF;
+    busLoraMessage[3] = BUS_ADDRESS & 0xFF;
 
     busLoraMessage[4] = state;
 
@@ -266,17 +256,17 @@ void bus_fsm(void)
             break;
 
         case WAITING:
-            // accept condition
-            if (keyCode == 20)
-            {
-                iWantToAcceptBus = 1;
-                Serial.println("bus: \t [fsm] i want to accept bus");
-            }
-
+            // // accept condition
+            // if (keyCode == 20)
+            // {
+            //     iWantToAcceptBus = 1;
+            //     Serial.println("bus: \t [fsm] i want to accept bus");
+            // }
             if (isThereRequest)
             {
+                //reset request flag
                 isThereRequest = 0;
-
+                //change fsm state to BUS_ACCEPT
                 bus_fsm_reset_state(BUS_ACCEPT);
                 busState = BUS_ACCEPT;
             }

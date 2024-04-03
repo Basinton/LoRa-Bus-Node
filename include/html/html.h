@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef __HTML_H_
 #define __HTML_H_
 
