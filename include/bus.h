@@ -2,41 +2,61 @@
 #define __BUS_H_
 
 /* Includes ------------------------------------------------------------------*/
-#include <stdio.h>
+#include "main.h"
 
 /* Define --------------------------------------------------------------------*/
+#define CURRENT_BUS_ID 0
+#define BUS_LIST 5
+
+const uint16_t BUS_ADDRESS_LIST[BUS_LIST] = {0x0001, 0x0010, 0x0011, 0x0100, 0x0101}; // Node's Addresses
+const uint16_t BUS_CHANEL_LIST[BUS_LIST] = {11, 22, 33, 44, 55};                      // Node's Channels
+const uint16_t BUS_ADDRESS = BUS_ADDRESS_LIST[CURRENT_BUS_ID];
+const uint16_t BUS_CHANNEL = BUS_CHANEL_LIST[CURRENT_BUS_ID];
+
 const uint16_t GATEWAY_ADDRESS = 0x0001;
-const uint16_t BUS_ADDRESS     = 0x0800; // 0xFFFF / 2
 const uint16_t GATEWAY_CHANNEL = 1;
-const uint16_t BUS_CHANNEL     = 11;
 
-const uint8_t BUS_NUMBER = 50;
+const uint8_t BUS_ROUTE = 50;
 
-#define ID_INDEX            1
-#define ADDRESS_HI_INDEX    2
-#define ADDRESS_LO_INDEX    3
-#define STATE_INDEX         4
-#define BUS_NUMBER_INDEX    5
+#define ID_INDEX 1
+#define ADDRESS_HI_INDEX 2
+#define ADDRESS_LO_INDEX 3
+#define STATE_INDEX 4
+#define BUS_NUMBER 5
 #define BUS_DIRECTION_INDEX 6
-#define STATION_ID_INDEX    7
+#define STATION_ID_INDEX 7
 
 typedef enum
 {
-    INIT                                     = 0,
-    WAITING                                  = 1,
-    REQUEST_TO_STATION                       = 2,
-    STATION_NOTIFY_ACCEPT_TO_BOARD           = 3,
-    REQUEST_TO_BUS                           = 4,
-    STATION_NOTIFY_BUS_ACCEPT_TO_BOARD       = 5,
-    BUS_ACCEPT                               = 6,
-    STATION_NOTIFY_BUS_PASS_TO_BOARD         = 7,
-    BUS_PASS                                 = 8,
-    STATION_NOTIFY_DRIVER_CANCEL_TO_BOARD    = 9,
-    DRIVER_CANCEL                            = 10,
+    ERROR_TIMEOUT = -1,
+    INIT = 0,
+    WAITING = 1,
+    REQUEST_TO_STATION = 2,
+    STATION_NOTIFY_ACCEPT_TO_BOARD = 3,
+    REQUEST_TO_BUS = 4,
+    STATION_NOTIFY_BUS_ACCEPT_TO_BOARD = 5,
+    BUS_ACCEPT = 6,
+    STATION_NOTIFY_BUS_PASS_TO_BOARD = 7,
+    BUS_PASS = 8,
+    STATION_NOTIFY_DRIVER_CANCEL_TO_BOARD = 9,
+    DRIVER_CANCEL = 10,
     BOARD_NOTIFY_PASSENGER_CANCEL_TO_STATION = 11,
-    PASSENGER_CANCEL                         = 12,
-    FINISHED                                 = 13
+    PASSENGER_CANCEL = 12,
+    FINISHED = 13
 } SYSTEM_STATE;
+
+typedef enum
+{
+    BUS_UNKNOWN = -1,
+    BUS_00,
+    BUS_01,
+    BUS_02,
+    BUS_03,
+    BUS_04,
+    BUS_COUNT
+} BUS_ID;
+
+extern BUS_ID busID;
 
 struct STATION_REQUEST
 {
@@ -74,7 +94,7 @@ const Stations STATIONS[] = {
 
 enum BusDirection
 {
-    NOT_KNOWN    = 2,
+    NOT_KNOWN = 2,
     START_TO_END = 1,
     END_TO_START = 0
 };
@@ -89,7 +109,8 @@ enum BUS_MODE
 const float MAX_DISTANCE_TO_BUS_STOP = 10.0;
 
 /* Variables -----------------------------------------------------------------*/
-extern int busNumber;
+extern int busRoute;
+extern char *busDriverName;
 extern int busDirection;
 extern int nowBusStop;
 extern int preBusStop;

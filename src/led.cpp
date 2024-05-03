@@ -1,7 +1,4 @@
 #include "led.h"
-#include <Arduino.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 
 /* Define --------------------------------------------------------------------*/
 typedef enum
@@ -14,10 +11,10 @@ typedef enum
 /* Variables -----------------------------------------------------------------*/
 LED_STATE led_state = LED_OFF;
 
-unsigned long led_currentMillis  = 0;
+unsigned long led_currentMillis = 0;
 unsigned long led_previousMillis = 0;
 
-/* Task handles */  
+/* Task handles */
 TaskHandle_t ledTaskHandle = NULL;
 
 /* Functions -----------------------------------------------------------------*/
@@ -42,34 +39,27 @@ void led_task(void *pvParameters)
     {
         switch (led_state)
         {
-            case LED_ON:
-                digitalWrite(PIN_ALARM, LOW);
+        case LED_ON:
+            digitalWrite(PIN_ALARM, LOW);
+            break;
 
-                // digitalWrite(32, HIGH);
-                break;
+        case LED_OFF:
+            digitalWrite(PIN_ALARM, HIGH);
+            break;
 
-            case LED_OFF:
-                digitalWrite(PIN_ALARM, HIGH);
+        case LED_TOGGLE_1S:
+            led_currentMillis = millis();
+            if (led_currentMillis - led_previousMillis >= 1000)
+            {
+                led_previousMillis = led_currentMillis;
+                digitalWrite(PIN_ALARM, !digitalRead(PIN_ALARM));
+            }
+            break;
 
-                // digitalWrite(32, LOW);
-                break;
-
-            case LED_TOGGLE_1S:
-                led_currentMillis = millis();
-                if (led_currentMillis - led_previousMillis >= 1000)
-                {
-                    led_previousMillis = led_currentMillis;
-                    digitalWrite(PIN_ALARM, !digitalRead(PIN_ALARM));
-
-                    // digitalWrite(32, !digitalRead(32));
-                }
-                break;
-
-            default:
-                led_state = LED_OFF;
-                break;
+        default:
+            led_state = LED_OFF;
+            break;
         }
-
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
@@ -83,7 +73,8 @@ void led_init()
     // pinMode(32, OUTPUT);
     // digitalWrite(32, LOW);
 
-    xTaskCreate(led_task, "LED Task", 4096, NULL, 2, &ledTaskHandle);
+    xTaskCreate(led_task, "LED Task", 1024, NULL, 2, &ledTaskHandle);
 
-    Serial.println("led: \t [init]");
+    sprintf(serial_buffer, "%-10s %-15s", "LED:", "Initialized");
+    Serial.println(serial_buffer);
 }

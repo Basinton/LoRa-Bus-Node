@@ -18,12 +18,10 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include <stdint.h>
-#include "Arduino.h"
-#include "LoRa_E32.h"
+#include "main.h"
 
 /* Define --------------------------------------------------------------------*/
-#define LORA_PACKAGE_SIZE_SEND    5
+#define LORA_PACKAGE_SIZE_SEND    6
 #define LORA_PACKAGE_SIZE_RECIEVE 8
 
 #define PIN_M0            18

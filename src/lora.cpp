@@ -1,10 +1,5 @@
 /* Includes ------------------------------------------------------------------*/
 #include "lora.h"
-#include "bus.h"
-#include "gps.h"
-#include "button.h"
-#include "Arduino.h"
-#include "LoRa_E32.h"
 
 /* Define --------------------------------------------------------------------*/
 
@@ -31,7 +26,9 @@ void lora_init(void)
     e32ttl100.begin();
     setConfig(BUS_ADDRESS, BUS_CHANNEL, AIR_DATA_RATE_000_03, POWER_20);
     xTaskCreate(lora_task, "lora task", 8192, NULL, configMAX_PRIORITIES, &loraTaskHandle);
-    Serial.println("lora: \t [init]");
+
+    sprintf(serial_buffer, "%-10s %-15s", "LORA:", "Initialized");
+    Serial.println(serial_buffer);
 }
 
 uint8_t checkSum(uint8_t *message, int size)
@@ -132,8 +129,8 @@ void checkDataReceive(void)
                         else
                         {
                             // Debugging messages
-                            if (lora_receive[i + BUS_NUMBER_INDEX] != busNumber)
-                                Serial.println("lora:\t[bus] wrong bus number");
+                            if (lora_receive[i + BUS_NUMBER] != busRoute)
+                                Serial.println("lora:\t[bus] wrong bus route");
                             if (lora_receive[i + BUS_DIRECTION_INDEX] != busDirection)
                                 Serial.println("lora:\t[bus] wrong direction");
                             if (_stationID != nowBusStop + 1)

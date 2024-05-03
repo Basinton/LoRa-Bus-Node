@@ -1,7 +1,4 @@
 #include "button.h"
-#include "Arduino.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 
 /* Define --------------------------------------------------------------------*/
 
@@ -23,11 +20,6 @@ void button_task(void *pvParameters)
         {
             keyTimeBeforeReleasing = 0;
             keyCode++;
-
-            if (keyCode == 1000)
-            {
-                keyCode = 1000;
-            }
         }
         else
         {
@@ -46,9 +38,10 @@ void button_init()
     keyTimeBeforeReleasing = 0;
 
     // Create the button task
-    xTaskCreate(button_task, "Button Task", 1024, NULL, 2, &buttonTaskHandle);
+    xTaskCreate(button_task, "Button Task", 2048, NULL, 2, &buttonTaskHandle);
 
-    Serial.println("but: \t [init]");
+    sprintf(serial_buffer, "%-10s %-15s", "BUTTON:", "Initialized");
+    Serial.println(serial_buffer);
 }
 
 uint32_t button_keycode()
