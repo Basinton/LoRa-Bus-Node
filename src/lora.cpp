@@ -1,10 +1,5 @@
 /* Includes ------------------------------------------------------------------*/
 #include "lora.h"
-#include "bus.h"
-#include "gps.h"
-#include "button.h"
-#include "Arduino.h"
-#include "LoRa_E32.h"
 
 /* Define --------------------------------------------------------------------*/
 
@@ -31,7 +26,9 @@ void lora_init(void)
     e32ttl100.begin();
     setConfig(BUS_ADDRESS, BUS_CHANNEL, AIR_DATA_RATE_000_03, POWER_20);
     xTaskCreate(lora_task, "lora task", 8192, NULL, configMAX_PRIORITIES, &loraTaskHandle);
-    Serial.println("lora: \t [init]");
+
+    sprintf(serial_buffer, "%-10s %-15s", "LORA:", "Initialized");
+    Serial.println(serial_buffer);
 }
 
 uint8_t checkSum(uint8_t *message, int size)
@@ -87,7 +84,6 @@ void checkDataReceive(void)
     static uint32_t startDataReach = 0;
     static uint32_t sizeOfData = lora_receive_count - LORA_PACKAGE_SIZE_RECIEVE;
     static uint8_t _stationID = 0;
-    Serial.println(sizeOfData);
 
     for (uint32_t i = 0; i < lora_receive_count; i++)
     {
@@ -96,7 +92,7 @@ void checkDataReceive(void)
             break;
         }
 
-        if (lora_receive[i] == 0xff)
+        if (lora_receive[i] == 0xFF)
         {
             checksum = checkSum(&lora_receive[i], LORA_PACKAGE_SIZE_RECIEVE);
             if (checksum == lora_receive[i + LORA_PACKAGE_SIZE_RECIEVE])
@@ -132,11 +128,11 @@ void checkDataReceive(void)
                         else
                         {
                             // Debugging messages
-                            if (lora_receive[i + BUS_NUMBER_INDEX] != busNumber)
-                                Serial.println("lora:\t[bus] wrong bus number");
-                            if (lora_receive[i + BUS_DIRECTION_INDEX] != busDirection)
+                            if (lora_receive[i + BUS_NUMBER_INDEX] != myBus.busRoute)
+                                Serial.println("lora:\t[bus] wrong bus route");
+                            if (lora_receive[i + BUS_DIRECTION_INDEX] != myBus.busDirection)
                                 Serial.println("lora:\t[bus] wrong direction");
-                            if (_stationID != nowBusStop + 1)
+                            if (_stationID != myBus.nowBusStop + 1)
                                 Serial.println("lora:\t[bus] is not next station");
                             if (_stationID == 0)
                                 Serial.println("lora:\t[bus] first station");

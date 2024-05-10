@@ -1,7 +1,5 @@
 #include "crc16.h"
 
-#include <stdint.h>
-#include <stdio.h>
 
 static const uint16_t wCRCTable[] =
     {

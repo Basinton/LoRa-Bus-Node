@@ -21,17 +21,17 @@ void gps_task(void *pvParameters)
 
     while (1)
     {
-        // while (gps_ss.available())
-        // {
-        //     gps.encode(gps_ss.read());
-        //     vTaskDelay(pdMS_TO_TICKS(1));
-        // }
+        while (gps_ss.available())
+        {
+            gps.encode(gps_ss.read());
+            vTaskDelay(pdMS_TO_TICKS(1));
+        }
 
         // Update GPS variables
-        gps_lat = gps.location.lat();
-        gps_lng = gps.location.lng();
-        gps_meters = gps.altitude.meters();
-        gps_kmph = gps.speed.kmph();
+        myBus.busLat = gps.location.lat();
+        myBus.busLong = gps.location.lng();
+        // gps_meters = gps.altitude.meters();
+        myBus.busSpeed = gps.speed.kmph();
 
         // Optional: Print GPS data for debugging
         // Serial.printf("gps: \t [get] %.6f, %.6f, %.2f m, %.2f km/h\n",
@@ -47,13 +47,8 @@ void gps_task(void *pvParameters)
 void gps_init()
 {
     gps_ss.begin(GPS_BAUDRATE);
-    xTaskCreate(gps_task, "GPS Task", 4096, NULL, 1, &gpsTaskHandle);
+    xTaskCreate(gps_task, "GPS Task", 2048, NULL, 1, &gpsTaskHandle);
 
-    Serial.println("gps: \t [init]");
-}
-
-void gps_process(void)
-{
-    while (gps_ss.available())
-        gps.encode(gps_ss.read());
+    sprintf(serial_buffer, "%-10s %-15s", "GPS:", "Initialized");
+    Serial.println(serial_buffer);
 }

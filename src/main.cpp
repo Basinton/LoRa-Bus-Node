@@ -1,41 +1,24 @@
-#include <Arduino.h>
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
 
-#include "button.h"
-#include "eeprom.h"
-#include "gps.h"
-#include "led.h"
-#include "lora.h"
-#include "ota.h"
-#include "ap.h"
-#include "buzzer.h"
-
-#include "bus.h"
 uint32_t startCycle = 0;
+char serial_buffer[50];
 
 void setup()
 {
-    delay(1000);
     Serial.begin(115200);
-
+    // wifi_init();
     button_init();
     led_init();
-
     gps_init();
     lora_init();
-    
-    bus_init();
-
-    AP_init();
-
     buzzer_init();
-    // buzzer_toggle_1s();
+    bus_init();
+    // dashboard_init();
+    buzzer_play_a_tone(tones_startup);
 }
 
 void loop()
 {
-    while (millis() - startCycle < 50)
-        ;
-    startCycle = millis();
 
-    gps_process();
 }

@@ -2,8 +2,8 @@
 #define __GPS_H_
 
 /* Includes ------------------------------------------------------------------*/
-#include <TinyGPSPlus.h>
-#include <SoftwareSerial.h>
+#include "main.h"
+
 /* Define --------------------------------------------------------------------*/
 #define GPS_BAUDRATE 9600
 #define GPS_RX       25
@@ -19,6 +19,5 @@ extern float gps_kmph;
 
 /* Functions -----------------------------------------------------------------*/
 void gps_init();
-void gps_process(void);
 
 #endif
