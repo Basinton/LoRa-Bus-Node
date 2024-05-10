@@ -8,8 +8,8 @@ This LoRa Node component is responsible for gathering data from the bus and tran
    Install PlatformIO and the required libraries by following the official [PlatformIO documentation](https://platformio.org/install).
 
 2. **Dependencies**  
-   - Platform = espressif32
-   - Board = esp32dev
+   - Platform: espressif32
+   - Board: esp32dev
    - Library:
      + LoRa_E32.h
      + WiFi.h
@@ -33,7 +33,7 @@ This LoRa Node component is responsible for gathering data from the bus and tran
        + PIN_M1          Pin 5
        + PIN_AUX         Pin 4
 
-4. **Configuration**
+4. **Configuration**  
    Modify the `.h` file to reconfigure the relevant settings
 
 ## Usage
