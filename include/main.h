@@ -14,6 +14,7 @@
 #include <ESPAsyncWebServer.h>
 #include <Arduino_JSON.h>
 #include <SPIFFS.h>
+#include <ArduinoWebsockets.h>
 
 // Local Libs
 #include "bus.h"

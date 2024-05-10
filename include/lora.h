@@ -22,6 +22,7 @@
 
 /* Define --------------------------------------------------------------------*/
 #define LORA_PACKAGE_SIZE_SEND    6
+#define LORA_LOCATION_SIZE_SEND   15
 #define LORA_PACKAGE_SIZE_RECIEVE 8
 
 #define PIN_M0            18

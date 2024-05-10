@@ -22,13 +22,13 @@ const uint8_t BUS_ROUTE = 50;
 #define ADDRESS_HI_INDEX 2
 #define ADDRESS_LO_INDEX 3
 #define STATE_INDEX 4
-#define BUS_NUMBER 5
+#define BUS_NUMBER_INDEX 5
 #define BUS_DIRECTION_INDEX 6
 #define STATION_ID_INDEX 7
 
 typedef enum
 {
-    ERROR_TIMEOUT = -1,
+    ERROR_TIMEOUT = 50,
     INIT = 0,
     WAITING = 1,
     REQUEST_TO_STATION = 2,
@@ -58,6 +58,20 @@ typedef enum
 
 extern BUS_ID busID;
 
+struct BUS
+{
+    u8_t busRoute;
+    String busDriverName;
+
+    float busLat;
+    float busLong;
+    double busSpeed;
+
+    u8_t busDirection;
+    u8_t nowBusStop;
+    u8_t preBusStop;
+};
+
 struct STATION_REQUEST
 {
     uint8_t id;
@@ -73,31 +87,68 @@ struct Stations
 {
     float lat;
     float lng;
+
+    String stationName;
 };
 
-// Stations STATIONS[] = {
-//     {10.773363, 106.656001},
-//     {10.772997, 106.657328},
-//     {10.771192, 106.657806},
-//     {10.770616, 106.656731},
-//     {10.771142, 106.653218},
-//     {10.773117, 106.652984},
-//     {10.774278, 106.654749},
-//     {10.774872, 106.656626}};
+// const Stations STATIONS[] = {
+//     {0, 0, "Không xác định"},
+//     {10.773363, 106.656001, "VP1"},
+//     {10.773072, 106.655213, "Vi tính Tài Phát"},
+//     // {10.772997, 106.657328, "BK Computer"},
+//     // {10.771192, 106.657806, "Trạm bus LTK"},
+//     // {10.770616, 106.656731, "Bánh mì HN"},
+//     // {10.771142, 106.653218, "Ngã 3 Lữ Gia"},
+//     // {10.773117, 106.652984, "Mixue"},
+//     // {10.774278, 106.654749, "Hẻm 281"},
+//     // {10.774872, 106.656626, "Petrolimex"},
+//     {10.772716, 106.654931, "VP2"}};
+
+// LoRa HK232 testing stations GPS data for BUS_50
+// const Stations STATIONS[] = {
+//     {0, 0, "Không xác định"},
+//     {10.772716, 106.654931, "VP2"},
+//     {10.773365, 106.661062, "Đại học Bách Khoa (cổng sau)"},
+//     {10.771294, 106.659070, "Bệnh viện Trưng Vương"},
+//     {10.772604, 106.657698, "Đại học Bách Khoa"},
+//     {10.776469, 106.656531, "Bưu Điện Phú Thọ"},
+//     {10.778741, 106.655909, "Ngã ba Thành Thái"},
+//     {10.781072, 106.655288, "Siêu thị Nguyễn Kim - CMC Tân Bình"},
+//     {10.784002, 106.654430, "Cây xăng Đôi"},
+//     {10.787758, 106.653368, "Chợ Tân Bình"}};
+
 const Stations STATIONS[] = {
-    {10.772186, 106.652858},
-    {10.773046, 106.655203},
-    {10.773762, 106.657042}};
+    {0, 0, "Không xác định"},
+    {10.772716, 106.654931, "VP2"},
+    {10.772604, 106.657698, "Đại học Bách Khoa"},
+    {10.771294, 106.659070, "Bệnh viện Trưng Vương"},
+    {10.773365, 106.661062, "Đại học Bách Khoa (cổng sau)"}
+};
+// {10.776469, 106.656531, "Bưu Điện Phú Thọ"},
+// {10.778741, 106.655909, "Ngã ba Thành Thái"},
+// {10.781072, 106.655288, "Siêu thị Nguyễn Kim - CMC Tân Bình"},
+// {10.784002, 106.654430, "Cây xăng Đôi"},
+// {10.787758, 106.653368, "Chợ Tân Bình"}};
 
 #define STATIONS_N sizeof(STATIONS) / sizeof(STATIONS[0])
-// #define STATIONS_N 3
 
 enum BusDirection
 {
-    NOT_KNOWN = 2,
-    START_TO_END = 1,
-    END_TO_START = 0
+    NOT_KNOWN,
+    START_TO_END,
+    END_TO_START
 };
+
+struct dirDisplay
+{
+    u8_t dirValue;
+    String dirName;
+};
+
+const dirDisplay direction[] = {
+    {NOT_KNOWN, "Không xác định"},
+    {START_TO_END, "Đầu đến cuối"},
+    {END_TO_START, "Cuối đến đầu"}};
 
 enum BUS_MODE
 {
@@ -109,11 +160,7 @@ enum BUS_MODE
 const float MAX_DISTANCE_TO_BUS_STOP = 10.0;
 
 /* Variables -----------------------------------------------------------------*/
-extern int busRoute;
-extern char *busDriverName;
-extern int busDirection;
-extern int nowBusStop;
-extern int preBusStop;
+extern BUS myBus;
 
 extern uint8_t isThereRequest;
 extern uint8_t isFinishedAck;
@@ -134,6 +181,7 @@ extern BUS_MODE busMode;
 void bus_init(void);
 void updateBusDirection();
 void updateBusStopsList();
+void busUpdateLocationToStation();
 
 void busAckToStation(SYSTEM_STATE state);
 void bus_ack_debuger(void);

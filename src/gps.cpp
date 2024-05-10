@@ -28,10 +28,10 @@ void gps_task(void *pvParameters)
         }
 
         // Update GPS variables
-        gps_lat = gps.location.lat();
-        gps_lng = gps.location.lng();
-        gps_meters = gps.altitude.meters();
-        gps_kmph = gps.speed.kmph();
+        myBus.busLat = gps.location.lat();
+        myBus.busLong = gps.location.lng();
+        // gps_meters = gps.altitude.meters();
+        myBus.busSpeed = gps.speed.kmph();
 
         // Optional: Print GPS data for debugging
         // Serial.printf("gps: \t [get] %.6f, %.6f, %.2f m, %.2f km/h\n",

@@ -1,151 +1,180 @@
-// Import required libraries
-#include "dashboard.h"
+// // Import required libraries
+// #include "dashboard.h"
+// /* Variables --------------------------------------------------------------------*/
+// // SSID and password for AP Mode
+// const char *ap_ssid = "LORA_TESTING";
+// const char *ap_password = "12345678";
 
-/* Variables --------------------------------------------------------------------*/
-// SSID and password for AP Mode
-const char *ap_ssid = "LORA_TESTING";
-const char *ap_password = "12345678";
+// // SSID and password for STA Mode
+// const char *sta_ssid = DEFAULT_STA_SSID;
+// const char *sta_password = DEFAULT_STA_PASSWORD;
 
-// SSID and password for STA Mode
-const char *sta_ssid = DEFAULT_STA_SSID;
-const char *sta_password = DEFAULT_STA_PASSWORD;
+// // const char *sta_ssid = "Basinton";
+// // const char *sta_password = "myling2850";
 
-// Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
-// Create an Event Source on /events
-AsyncWebSocket ws("/ws");
+// // Replace with your computer's local network IP
 
-String message = "";
+// const char *websocket_server = "ws://lorabus.ddns.net:8080/path";
+// // const char *websocket_server = "ws://192.168.1.12:3000/path";
 
-/* Task handles */
-TaskHandle_t dashboardTaskHandle = NULL;
 
-/* Functions -----------------------------------------------------------------*/
-void dashboard_task(void *pvParameters)
-{
-  while (1)
-  {
-    ws.cleanupClients();
-    vTaskDelay(pdMS_TO_TICKS(50));
-  }
-}
+// using namespace websockets;
 
-// Json Variable to Hold Bus Info
-JSONVar busInfo;
+// WebsocketsClient client;
 
-// Get Bus Info
-String getBusInfo()
-{
-  busInfo["bus_route"] = String(busRoute);
-  busInfo["bus_driver_name"] = String(busDriverName);
-  busInfo["bus_location_lat"] = String(gps_lat, 14);
-  busInfo["bus_location_lng"] = String(gps_lng, 14);
-  busInfo["bus_speed"] = String(gps_kmph);
-  busInfo["bus_direction"] = String(busDirection);
-  busInfo["bus_next_stop"] = String(nowBusStop);
+// /* Task handles */
+// TaskHandle_t dashboardTaskHandle = NULL;
+// TaskHandle_t busSendInfoTaskHandle = NULL;
+// TaskHandle_t reconnectTaskHandle = NULL;
 
-  String jsonString = JSON.stringify(busInfo);
-  return jsonString;
-}
+// /* Functions -----------------------------------------------------------------*/
+// void dashboard_task(void *pvParameters)
+// {
+//   while (1)
+//   {
+//     client.poll();
+//     vTaskDelay(pdMS_TO_TICKS(50));
+//   }
+// }
 
-// Initialize SPIFFS
-void fs_init()
-{
-  if (!SPIFFS.begin())
-  {
-    Serial.println("An error has occurred while mounting SPIFFS");
-  }
-  else
-  {
-    sprintf(serial_buffer, "%-10s %-15s", "SPIFFS:", "Initialized");
-    Serial.println(serial_buffer);
-  }
-}
+// void reconnect_task(void *pvParameters)
+// {
+//   while (1)
+//   {
+//     reconnectWebServer();
+//     // Sleep a while before checking the connection status again
+//     vTaskDelay(pdMS_TO_TICKS(5000)); // Check every 5 seconds
+//   }
+// }
 
-// Initialize WiFi
-void wifi_init()
-{
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect(true);
-  // // Start the AP
-  // WiFi.softAP(ap_ssid, ap_password);
-  // Serial.print("Access Point \"");
-  // Serial.print(ap_ssid);
-  // Serial.println("\" started");
-  // IPAddress IP = WiFi.softAPIP();
-  // Serial.println(IP);
+// void busSendInfo_task(void *pvParameters)
+// {
+//   while (1)
+//   {
+//     if (client.available())
+//     {
+//       String info = getBusInfo();
+//       client.send(info);
+//     }
+//     vTaskDelay(pdMS_TO_TICKS(5000)); // Delay for 5 seconds
+//   }
+// }
 
-  // Connect to the STA
-  WiFi.begin(sta_ssid, sta_password);
-  Serial.print("Connecting WiFi..");
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-}
+// // Json Variable to Hold Bus Info
+// JSONVar busInfo;
+// unsigned long messageID = 0;
 
-void notifyClients(String busInfo)
-{
-  ws.textAll(busInfo);
-}
+// // Get Bus Info
+// String getBusInfo()
+// {
+//   busInfo["message_id"] = String(messageID++);
+//   busInfo["bus_id"] = String(CURRENT_BUS_ID);
+//   busInfo["bus_route"] = String(myBus.busRoute);
+//   busInfo["bus_driver_name"] = String(myBus.busDriverName);
+//   busInfo["bus_location_lat"] = String(myBus.busLat, 6);
+//   busInfo["bus_location_lng"] = String(myBus.busLong, 6);
+//   busInfo["bus_speed"] = String(myBus.busSpeed);
+//   busInfo["bus_direction"] = String(direction[myBus.busDirection].dirName);
+//   busInfo["bus_now_stop"] = String(STATIONS[myBus.nowBusStop].stationName);
 
-void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
-{
-  AwsFrameInfo *info = (AwsFrameInfo *)arg;
-  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
-  {
-    data[len] = 0;
-    message = (char *)data;
-    // Serial.println(message);
-    if (strcmp((char *)data, "getBusInfo") == 0)
-    {
-      notifyClients(getBusInfo());
-    }
-  }
-}
+//   String jsonString = JSON.stringify(busInfo);
+//   return jsonString;
+// }
 
-void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
-{
-  switch (type)
-  {
-  case WS_EVT_CONNECT:
-    Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-    break;
-  case WS_EVT_DISCONNECT:
-    Serial.printf("WebSocket client #%u disconnected\n", client->id());
-    break;
-  case WS_EVT_DATA:
-    handleWebSocketMessage(arg, data, len);
-    break;
-  case WS_EVT_PONG:
-  case WS_EVT_ERROR:
-    break;
-  }
-}
+// // Initialize WiFi
+// void wifi_init()
+// {
+//   WiFi.mode(WIFI_STA);
+//   WiFi.disconnect(true);
+//   // // Start the AP
+//   // WiFi.softAP(ap_ssid, ap_password);
+//   // Serial.print("Access Point \"");
+//   // Serial.print(ap_ssid);
+//   // Serial.println("\" started");
+//   // IPAddress IP = WiFi.softAPIP();
+//   // Serial.println(IP);
 
-void websocket_init()
-{
-  ws.onEvent(onEvent);
-  server.addHandler(&ws);
-}
+//   // Connect to the STA
+//   WiFi.begin(sta_ssid, sta_password);
+//   Serial.print("Connecting WiFi..");
+//   while (WiFi.status() != WL_CONNECTED)
+//   {
+//     delay(500);
+//     Serial.print(".");
+//   }
+//   Serial.println("");
+//   Serial.print("IP address: ");
+//   Serial.println(WiFi.localIP());
+// }
 
-void dashboard_init(void)
-{
-  // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-            { request->send(SPIFFS, "/index.html", "text/html"); });
+// void reconnectWebServer()
+// {
+//   if (WiFi.status() != WL_CONNECTED)
+//   {
+//     Serial.println("Reconnecting to WiFi...");
+//     WiFi.disconnect();
+//     WiFi.reconnect();
 
-  server.serveStatic("/", SPIFFS, "/");
+//     // Wait for WiFi to reconnect
+//     while (WiFi.status() != WL_CONNECTED)
+//     {
+//       vTaskDelay(pdMS_TO_TICKS(500)); // Wait 500 ms
+//       Serial.print(".");
+//     }
+//     Serial.println("Reconnected to WiFi.");
+//   }
 
-  server.begin();
+//   if (!client.available())
+//   {
+//     client.close();
+//     Serial.println("Reconnecting to WebSocket Server...");
+//     if (!client.connect(websocket_server))
+//     {
+//       Serial.println("Connection Failed!");
+//       // Wait a bit before retrying to avoid flooding with connection requests
+//       vTaskDelay(pdMS_TO_TICKS(10000)); // Wait 10 seconds before retrying
+//     }
+//     else
+//     {
+//       // Reconnected successfully
+//       Serial.println("Reconnected to WebSocket Server.");
+//     }
+//   }
+// }
 
-  // Create the dashboard task
-  xTaskCreate(dashboard_task, "Dashboard Task", 1024, NULL, 2, &dashboardTaskHandle);
+// void webSocketEvent(WebsocketsEvent event, String data)
+// {
+//   switch (event)
+//   {
+//   case WebsocketsEvent::ConnectionOpened:
+//     Serial.println("Connection Opened");
+//     break;
+//   case WebsocketsEvent::ConnectionClosed:
+//     Serial.println("WebSocket connection closed");
+//     break;
+//     // Handle other events as needed...
+//   }
+// }
 
-  sprintf(serial_buffer, "%-10s %-15s", "DASHBOARD:", "Initialized");
-  Serial.println(serial_buffer);
-}
+// void websocket_init()
+// {
+//   client.onEvent(webSocketEvent);
+//   client.connect(websocket_server);
+// }
+
+// void dashboard_init(void)
+// {
+//   websocket_init();
+
+//   // Start a periodic timer to send bus info every 10 seconds
+//   xTaskCreate(busSendInfo_task, "Bus Send Info", 2048, NULL, 2, &busSendInfoTaskHandle);
+
+//   // Create the dashboard task
+//   xTaskCreate(dashboard_task, "Dashboard Task", 2048, NULL, 2, &dashboardTaskHandle);
+
+//   // Create task to check connection between bus and server
+//   xTaskCreate(reconnect_task, "Reconnect Task", 4096, NULL, 2, &reconnectTaskHandle);
+
+//   sprintf(serial_buffer, "%-10s %-15s", "DASHBOARD:", "Initialized");
+//   Serial.println(serial_buffer);
+// }

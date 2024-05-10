@@ -84,7 +84,6 @@ void checkDataReceive(void)
     static uint32_t startDataReach = 0;
     static uint32_t sizeOfData = lora_receive_count - LORA_PACKAGE_SIZE_RECIEVE;
     static uint8_t _stationID = 0;
-    Serial.println(sizeOfData);
 
     for (uint32_t i = 0; i < lora_receive_count; i++)
     {
@@ -93,7 +92,7 @@ void checkDataReceive(void)
             break;
         }
 
-        if (lora_receive[i] == 0xff)
+        if (lora_receive[i] == 0xFF)
         {
             checksum = checkSum(&lora_receive[i], LORA_PACKAGE_SIZE_RECIEVE);
             if (checksum == lora_receive[i + LORA_PACKAGE_SIZE_RECIEVE])
@@ -129,11 +128,11 @@ void checkDataReceive(void)
                         else
                         {
                             // Debugging messages
-                            if (lora_receive[i + BUS_NUMBER] != busRoute)
+                            if (lora_receive[i + BUS_NUMBER_INDEX] != myBus.busRoute)
                                 Serial.println("lora:\t[bus] wrong bus route");
-                            if (lora_receive[i + BUS_DIRECTION_INDEX] != busDirection)
+                            if (lora_receive[i + BUS_DIRECTION_INDEX] != myBus.busDirection)
                                 Serial.println("lora:\t[bus] wrong direction");
-                            if (_stationID != nowBusStop + 1)
+                            if (_stationID != myBus.nowBusStop + 1)
                                 Serial.println("lora:\t[bus] is not next station");
                             if (_stationID == 0)
                                 Serial.println("lora:\t[bus] first station");
