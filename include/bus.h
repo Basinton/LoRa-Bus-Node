@@ -5,11 +5,11 @@
 #include "main.h"
 
 /* Define --------------------------------------------------------------------*/
-#define CURRENT_BUS_ID 0
+#define CURRENT_BUS_ID 4
 #define BUS_LIST 5
 
 const uint16_t BUS_ADDRESS_LIST[BUS_LIST] = {0x0001, 0x0010, 0x0011, 0x0100, 0x0101}; // Node's Addresses
-const uint16_t BUS_CHANEL_LIST[BUS_LIST] = {11, 22, 33, 44, 55};                      // Node's Channels
+const uint16_t BUS_CHANEL_LIST[BUS_LIST] = {10, 15, 20, 25, 30};                      // Node's Channels
 const uint16_t BUS_ADDRESS = BUS_ADDRESS_LIST[CURRENT_BUS_ID];
 const uint16_t BUS_CHANNEL = BUS_CHANEL_LIST[CURRENT_BUS_ID];
 
@@ -48,11 +48,11 @@ typedef enum
 typedef enum
 {
     BUS_UNKNOWN = -1,
-    BUS_00,
+    BUS_50,
     BUS_01,
     BUS_02,
     BUS_03,
-    BUS_04,
+    BUS_08,
     BUS_COUNT
 } BUS_ID;
 
@@ -66,6 +66,7 @@ struct BUS
     float busLat;
     float busLong;
     double busSpeed;
+    float busDistance;
 
     u8_t busDirection;
     u8_t nowBusStop;
@@ -158,6 +159,8 @@ enum BUS_MODE
 
 // Define a constant for the maximum distance to consider a bus stop as reached (in meters)
 const float MAX_DISTANCE_TO_BUS_STOP = 10.0;
+
+
 
 /* Variables -----------------------------------------------------------------*/
 extern BUS myBus;

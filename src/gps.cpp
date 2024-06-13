@@ -32,7 +32,7 @@ void gps_task(void *pvParameters)
         myBus.busLong = gps.location.lng();
         // gps_meters = gps.altitude.meters();
         myBus.busSpeed = gps.speed.kmph();
-
+        myBus.busDistance = TinyGPSPlus::distanceBetween(gps.location.lat(), gps.location.lng(), 10.771120, 106.658000);
         // Optional: Print GPS data for debugging
         // Serial.printf("gps: \t [get] %.6f, %.6f, %.2f m, %.2f km/h\n",
         //               gps_lat,

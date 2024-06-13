@@ -25,7 +25,8 @@
 #include "led.h"
 #include "lora.h"
 #include "ota.h"
-#include "dashboard.h"
+#include "AP.h"
+#include "global.h"
 
 extern char serial_buffer[50]; // Adjust the size as necessary
 

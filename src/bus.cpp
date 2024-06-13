@@ -13,15 +13,19 @@ uint8_t busLocationMessage[20] = {0};
 
 BUS_MODE busMode = TESTING;
 
-BUS_ID busID = BUS_00;
+BUS_ID busID = BUS_08;
 
 uint8_t errorCount[BUS_COUNT] = {0};
 
+uint8_t station_HIGH = (GATEWAY_ADDRESS >> 8) & 0xFF;
+uint8_t station_LOW = GATEWAY_ADDRESS & 0xFF;
+
 // Create BUS
-BUS myBus = {BUS_ROUTE, "Nguyễn Văn A", 0, 0, 0, NOT_KNOWN, 0, 0};
+BUS myBus = {BUS_ROUTE, "Nguyễn Văn A", 0, 0, 0, 0, NOT_KNOWN, 0, 0};
 uint8_t busLatBytes[4];
 uint8_t busLongBytes[4];
 uint8_t messageID[2];
+uint8_t distanceToStation[2];
 
 // Station request
 SYSTEM_STATE busState = INIT;
@@ -49,9 +53,17 @@ void floatToBytes(float number, uint8_t *bytes, int scale = 1000000)
     bytes[3] = (uint8_t)(scaled & 0xFF);
 }
 
-void messageIdToBytes(uint16_t messageID, uint8_t *bytes){ 
-    bytes[0] = (uint8_t)((messageID >> 8) & 0xFF);
-    bytes[1] = (uint8_t)(messageID & 0xFF);
+void busDistanceToBytes(float distance, uint8_t *bytes, int scale = 10)
+{
+    int32_t scaled = static_cast<int16_t>(distance * scale);
+    bytes[0] = (uint8_t)((scaled >> 8) & 0xFF);
+    bytes[1] = (uint8_t)(scaled & 0xFF);
+}
+
+void messageIdToBytes(uint16_t distanceToStation, uint8_t *bytes)
+{
+    bytes[0] = (uint8_t)((distanceToStation >> 8) & 0xFF);
+    bytes[1] = (uint8_t)(distanceToStation & 0xFF);
 }
 
 uint8_t speedToByte(float speedKmh)
@@ -163,12 +175,11 @@ void busTaskUpdate(void *pvParameters)
         updateBusStopsList();
         busUpdateLocationToStation();
 
-        // Serial.printf("bus: \t [dir=%d][now=%d][pre=%d]\n", busDirection, nowBusStop, preBusStop);
+        // Serial.printf("bus: \t [dir=%d][now=%d][pre=%d]\n", myBus.busDirection, myBus.nowBusStop, myBus.preBusStop);
 
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
-
 
 // /* For testing only ------------------------------------------------------------------*/
 
@@ -177,6 +188,7 @@ void busUpdateLocationToStation()
     floatToBytes(myBus.busLat, busLatBytes);
     floatToBytes(myBus.busLong, busLongBytes);
     messageIdToBytes(messageID_origin++, messageID);
+    busDistanceToBytes(myBus.busDistance, distanceToStation);
 
     busLocationMessage[0] = 0xAA;
 
@@ -197,16 +209,19 @@ void busUpdateLocationToStation()
 
     busLocationMessage[12] = speedToByte(myBus.busSpeed);
 
-    busLocationMessage[13] = myBus.busDirection;
-    busLocationMessage[14] = myBus.nowBusStop;
+    busLocationMessage[13] = distanceToStation[0];
+    busLocationMessage[14] = distanceToStation[1];
+
+    // busLocationMessage[13] = myBus.busDirection;
+    // busLocationMessage[14] = myBus.nowBusStop;
 
     // busLocationMessage[14] = (BUS_ADDRESS >> 8) & 0xFF; // Bus Address HIGH
     // busLocationMessage[15] = BUS_ADDRESS & 0xFF;        // Bus Address LOW
 
     busLocationMessage[15] = checkSum(busLocationMessage, LORA_LOCATION_SIZE_SEND);
 
-    e32ttl100.sendBroadcastFixedMessage(GATEWAY_CHANNEL, busLocationMessage, LORA_LOCATION_SIZE_SEND + 1);
-    // e32ttl100.sendFixedMessage(station_request.addressHI, station_request.addressLO, GATEWAY_CHANNEL, busLoraMessage, LORA_PACKAGE_SIZE_SEND + 1);
+    // e32ttl100.sendBroadcastFixedMessage(GATEWAY_CHANNEL, busLocationMessage, LORA_LOCATION_SIZE_SEND + 1);
+    e32ttl100.sendFixedMessage(station_HIGH, station_LOW, GATEWAY_CHANNEL, busLocationMessage, LORA_LOCATION_SIZE_SEND + 1);
 }
 
 // /* For testing only ------------------------------------------------------------------*/
@@ -266,7 +281,7 @@ void bus_fsm_reset_state(SYSTEM_STATE state)
     case BUS_ACCEPT:
         busAckToStation(BUS_ACCEPT);
 
-        led_toggle_1s();
+        led_on();
         buzzer_toggle_1s();
 
         Serial.printf("bus: \t [fsm] accept (id=%d, address=%d)\n", station_request.id, station_request.id);
@@ -274,9 +289,6 @@ void bus_fsm_reset_state(SYSTEM_STATE state)
 
     case BUS_PASS:
         busAckToStation(BUS_PASS);
-
-        led_off();
-        buzzer_off();
 
         busTimout = 40;
 
@@ -288,6 +300,7 @@ void bus_fsm_reset_state(SYSTEM_STATE state)
 
         busTimout = 40;
 
+        led_off();
         buzzer_off();
 
         Serial.println("bus: \t [fsm] bus cancel");
@@ -297,6 +310,9 @@ void bus_fsm_reset_state(SYSTEM_STATE state)
         busAckToStation(PASSENGER_CANCEL);
 
         busTimout = 40;
+
+        led_off();
+        buzzer_play_a_tone(tones_3beep);
 
         Serial.println("bus: \t [fsm] passenger cancel");
         break;
@@ -336,13 +352,24 @@ void bus_fsm(void)
         break;
 
     case BUS_ACCEPT:
-        if (myBus.nowBusStop == station_request.stationID)
-        {
-            bus_fsm_reset_state(BUS_PASS);
-            busState = BUS_PASS;
-        }
+        // _distanceToRequestStation = TinyGPSPlus::distanceBetween(gps.location.lat(), gps.location.lng(), 10.771758, 106.658074);
+        // if (station_request.stationID == 1 && _distanceToRequestStation <= 50)
+        // {
+        //     bus_fsm_reset_state(BUS_PASS);
+        //     busState = BUS_PASS;
+        // }
 
-        if (keyCode == 60)
+        // if (currentTime - previousTime >= stateDuration)
+        // {
+        //     // Transition to the next state
+        //     bus_fsm_reset_state(BUS_PASS);
+        //     busState = BUS_PASS;
+        //     // Update the previous time
+        //     previousTime = currentTime;
+        // }
+        // currentTime = millis();
+
+        if (keyCode == 20)
         {
             buzzer_set_play_a_tone();
             buzzer_play_a_tone(tones_3beep);
@@ -354,7 +381,12 @@ void bus_fsm(void)
 
         if (keyCode == 0)
         {
-            if (button_keycode_release() >= 60)
+            if (button_keycode_release() >= 10 && button_keycode_release() < 20)
+            {
+                keyTimeBeforeReleasing = 0;
+                buzzer_off();
+            }
+            else if (button_keycode_release() >= 20)
             {
                 keyTimeBeforeReleasing = 0;
 
@@ -375,10 +407,9 @@ void bus_fsm(void)
         break;
 
     case BUS_PASS:
-        _distanceToRequestStation = TinyGPSPlus::distanceBetween(gps.location.lat(), gps.location.lng(), STATIONS[station_request.stationID].lat, STATIONS[station_request.stationID].lng);
-
+        // _distanceToRequestStation = TinyGPSPlus::distanceBetween(gps.location.lat(), gps.location.lng(), STATIONS[station_request.stationID].lat, STATIONS[station_request.stationID].lng);
         // if (isFinishedAck)
-        if (isFinishedAck || _distanceToRequestStation >= 500)
+        if (isFinishedAck == 1)
         {
             isFinishedAck = 0;
 
@@ -470,8 +501,8 @@ void busTask(void *pvParameters)
 
 void bus_init()
 {
-    xTaskCreate(busTaskUpdate, "Bus Update", 8192, NULL, 2, &busTaskUpdateHandle);
-    xTaskCreate(busTask, "Main process of Bus", 8192, NULL, 5, &busTaskHandle);
+    xTaskCreate(busTaskUpdate, "Bus Update", 2048, NULL, 2, &busTaskUpdateHandle);
+    xTaskCreate(busTask, "Main process of Bus", 2048, NULL, 5, &busTaskHandle);
 
     sprintf(serial_buffer, "%-10s %-15s", "BUS:", "Initialized");
     Serial.println(serial_buffer);

@@ -19,6 +19,8 @@ extern My_ToneTypeDef tones_3beep[];
 extern My_ToneTypeDef tones_2_beep[];
 extern My_ToneTypeDef single_beep[];
 
+extern uint8_t buzzer_count;
+
 /* Functions -----------------------------------------------------------------*/
 void buzzer_init();
 void buzzer_play_a_tone(My_ToneTypeDef* input_tone);

@@ -5,7 +5,7 @@
 
 /* Variables -----------------------------------------------------------------*/
 uint8_t lora_receive[1000] = {0};
-uint32_t lora_receive_count = 0;
+uint32_t lora_receive_cnt = 0;
 
 LoRa_E32 e32ttl100(&Serial2, PIN_AUX, PIN_M0, PIN_M1, UART_BPS_RATE_9600);
 
@@ -50,9 +50,10 @@ void lora_process(void)
 
         for (uint32_t i = 0; i < response.data.length(); i++)
         {
-            lora_receive[lora_receive_count] = response.data[i];
-            lora_receive_count = (lora_receive_count + 1) % 1000;
+            lora_receive[lora_receive_cnt] = response.data[i];
+            lora_receive_cnt = (lora_receive_cnt + 1) % 1000;
         }
+
     }
     else
     {
@@ -61,14 +62,14 @@ void lora_process(void)
 
     if (_checkNoData > 1)
     {
-        lora_receive_count = 0;
+        lora_receive_cnt = 0;
         _checkNoData = 0;
     }
 
-    if (lora_receive_count > LORA_PACKAGE_SIZE_RECIEVE)
+    if (lora_receive_cnt > LORA_PACKAGE_SIZE_RECIEVE)
     {
-        Serial.printf("lora:\t[%d] ", lora_receive_count);
-        for (size_t i = 0; i < lora_receive_count; i++)
+        Serial.printf("lora:\t[%d] ", lora_receive_cnt);
+        for (size_t i = 0; i < lora_receive_cnt; i++)
         {
             Serial.printf("%02X ", lora_receive[i]);
         }
@@ -82,10 +83,10 @@ void checkDataReceive(void)
     static uint8_t status = 0;
     static uint8_t checksum;
     static uint32_t startDataReach = 0;
-    static uint32_t sizeOfData = lora_receive_count - LORA_PACKAGE_SIZE_RECIEVE;
+    static uint32_t sizeOfData = lora_receive_cnt - LORA_PACKAGE_SIZE_RECIEVE;
     static uint8_t _stationID = 0;
 
-    for (uint32_t i = 0; i < lora_receive_count; i++)
+    for (uint32_t i = 0; i < lora_receive_cnt; i++)
     {
         if (i >= sizeOfData)
         {
@@ -113,7 +114,6 @@ void checkDataReceive(void)
                         // _conditionBusAccept = (_conditionBusAccept && (_stationID == nowBusStop + 1)) || button_keycode() == 20;
                         iWantToAcceptBus = 1;
                         _conditionBusAccept = iWantToAcceptBus;
-                        
 
                         // 2. If ok, accept
                         if (_conditionBusAccept)
@@ -190,18 +190,18 @@ void checkDataReceive(void)
         }
     }
 
-    if (lora_receive_count < startDataReach)
+    if (lora_receive_cnt < startDataReach)
         return;
 
-    for (uint32_t i = 0; i < lora_receive_count - startDataReach; i++)
+    for (uint32_t i = 0; i < lora_receive_cnt - startDataReach; i++)
     {
-        if (i >= (lora_receive_count - startDataReach))
+        if (i >= (lora_receive_cnt - startDataReach))
             break;
         lora_receive[i] = lora_receive[startDataReach + i];
     }
-    lora_receive_count = lora_receive_count - startDataReach;
+    lora_receive_cnt = lora_receive_cnt - startDataReach;
 
-    memset(&lora_receive[lora_receive_count], 0x00, 1000 - lora_receive_count);
+    memset(&lora_receive[lora_receive_cnt], 0x00, 1000 - lora_receive_cnt);
 }
 
 void accessModeConfig(void)

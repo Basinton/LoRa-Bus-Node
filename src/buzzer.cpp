@@ -138,7 +138,6 @@ void buzzer_init()
     note_index = 0;
     pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(BUZZER_PIN, LOW);
-    
 
     ledcSetup(BUZZER_CHANNEL, BUZZER_BASE_FREQ, BUZZER_TIMER_13_BIT);
     ledcAttachPin(BUZZER_PIN, BUZZER_CHANNEL);
